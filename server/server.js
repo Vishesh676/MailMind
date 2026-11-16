@@ -13,7 +13,13 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY
 });
 
-app.use(cors());
+const corsOptions = {
+  origin: "https://mail-mind2.vercel.app",
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Automatic retry for temporary API errors
