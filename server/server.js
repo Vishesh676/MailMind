@@ -1,150 +1,135 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { GoogleGenAI } from "@google/genai";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Gemini API setup
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY
-});
-const corsOptions = {
-  origin: (origin, callback) => {
-    if (!origin) {
-      return callback(null, true);
-    }
+const allowedOrigins = [
+  "https://mail-mind2.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:3000",
+];
 
-    const hostname = new URL(origin).hostname;
-
-    const isProduction =
-      hostname === "mail-mind2.vercel.app";
-
-    const isPreview =
-      /^mail-mind2-[a-z0-9-]+-mail-mind1\.vercel\.app$/.test(hostname);
-
-    if (isProduction || isPreview) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-};
-
-app.use(cors(corsOptions));
-app.use(express.json());
-
-// Automatic retry for temporary API errors
-async function generateWithRetry(request, maxAttempts = 3) {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await ai.models.generateContent(request);
-    } catch (error) {
-      const message = error.message || "";
-      const status = error.status || error.code;
-
-      const shouldRetry =
-        status === 429 ||
-        status === 503 ||
-        /high demand|overloaded/i.test(message);
-
-      if (!shouldRetry || attempt === maxAttempts) {
-        throw error;
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        /^https:\/\/mail-mind2-[a-z0-9-]+-mail-mind1\.vercel\.app$/.test(origin)
+      ) {
+        return callback(null, true);
       }
 
-      console.log(`AI retry attempt ${attempt}...`);
+      return callback(new Error("Not allowed by CORS"));
+    },
+  })
+);
 
-      await new Promise(resolve =>
-        setTimeout(resolve, attempt * 2000)
-      );
-    }
-  }
-}
+app.use(express.json());
 
-// Home route
 app.get("/", (req, res) => {
-  res.json({
-    message: "MailMind Backend is running!"
-  });
+  res.send("MailMind Backend is running!");
 });
 
-// Health check
 app.get("/api/health", (req, res) => {
-  res.json({
-    status: "OK",
-    message: "Backend is healthy"
-  });
+  res.json({ status: "OK", message: "MailMind API is running" });
 });
 
-// AI Email Classification
 app.post("/api/ai/classify", async (req, res) => {
   try {
     const { subject, message } = req.body;
 
     if (!subject || !message) {
       return res.status(400).json({
-        error: "Subject and message are required"
+        error: "Subject and message are required",
       });
     }
 
-    const response = await generateWithRetry({
-      model: "gemini-3.8-flash",
-      contents: `
-You are an intelligent email management assistant.
+    if (!process.env.OPENROUTER_API_KEY) {
+      return res.status(500).json({
+        error: "OpenRouter API key is missing",
+      });
+    }
 
-Analyze the following email:
+    console.log("Sending request to OpenRouter...");
 
-Subject: ${subject}
-Message: ${message}
-
-Classify it into exactly one category:
-- Assistant to Reply
-- Client to Reply
-- No Reply Needed
-- Needs Review
-
-Also provide:
-1. A short summary.
-2. Important dates or actions.
-3. A suggested professional reply.
-
-Return ONLY valid JSON in this format:
-
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://mail-mind2.vercel.app",
+          "X-Title": "MailMind",
+        },
+        body: JSON.stringify({
+          model: "meta-llama/llama-3.3-70b-instruct:free",
+          messages: [
+            {
+              role: "system",
+              content: `You are MailMind, an AI email assistant.
+Analyze the email and return ONLY valid JSON with these fields:
 {
-  "category": "Assistant to Reply",
+  "category": "Assistant to Reply" or "Client to Reply" or "No Reply Needed" or "Needs Review",
   "summary": "Short email summary",
-  "importantDates": ["Important date or action"],
-  "suggestedReply": "Suggested reply"
+  "importantDates": ["Important dates or deadlines"],
+  "suggestedReply": "A professional suggested email reply"
 }
-      `
-    });
+Choose Needs Review if classification is uncertain.
+Do not invent dates or facts.`,
+            },
+            {
+              role: "user",
+              content: `Subject: ${subject}\n\nEmail: ${message}`,
+            },
+          ],
+          temperature: 0.3,
+        }),
+      }
+    );
 
-    const resultText = response.text;
-    console.log("Gemini Raw Response:", resultText);
-    const cleanedText = resultText
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("OpenRouter error:", data);
+
+      return res.status(response.status).json({
+        error:
+          data?.error?.message ||
+          "OpenRouter request failed",
+      });
+    }
+
+    const aiText = data.choices?.[0]?.message?.content;
+
+    if (!aiText) {
+      throw new Error("AI returned an empty response");
+    }
+
+    const cleanedText = aiText
       .replace(/```json/gi, "")
       .replace(/```/g, "")
       .trim();
 
     const result = JSON.parse(cleanedText);
 
-    res.json(result);
+    console.log("OpenRouter response received");
 
+    return res.status(200).json(result);
   } catch (error) {
-    console.error("Gemini Error:", error.message);
+    console.error("AI classification error:", error);
 
-    res.status(500).json({
-      error: "AI classification failed. Please try again later."
+    return res.status(500).json({
+      error: error.message || "AI classification failed",
     });
   }
 });
 
-// Start server
 app.listen(PORT, () => {
   console.log(`MailMind server running on port ${PORT}`);
 });
