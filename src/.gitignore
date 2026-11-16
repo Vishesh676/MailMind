@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+server/node_modules/
+server/.env
+# Environment variables - Never upload API keys
+.env
+.env.*
+server/.env
