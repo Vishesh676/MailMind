@@ -12,16 +12,31 @@ const PORT = process.env.PORT || 5000;
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY
 });
-
 const corsOptions = {
-  origin: "https://mail-mind2.vercel.app",
+  origin: (origin, callback) => {
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    const hostname = new URL(origin).hostname;
+
+    const isProduction =
+      hostname === "mail-mind2.vercel.app";
+
+    const isPreview =
+      /^mail-mind2-[a-z0-9-]+-mail-mind1\.vercel\.app$/.test(hostname);
+
+    if (isProduction || isPreview) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
 
 app.use(cors(corsOptions));
-
-
 app.use(express.json());
 
 // Automatic retry for temporary API errors
