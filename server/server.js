@@ -8,16 +8,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Allow frontend requests and handle OPTIONS preflight.
-app.use(
-  cors({
-    origin: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    optionsSuccessStatus: 204,
-  })
-);
-
+app.use(cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {
@@ -25,96 +16,65 @@ app.get("/", (req, res) => {
 });
 
 app.get("/api/health", (req, res) => {
-  res.json({
-    status: "OK",
-    message: "MailMind API is running",
-  });
+  res.json({ status: "OK", message: "MailMind API is running" });
 });
 
-app.post("/api/ai/classify", async (req, res) => {
+app.post("/api/ai/classify", (req, res) => {
   try {
-    const { subject, message } = req.body;
+    const { subject = "", message = "" } = req.body || {};
+    const text = `${subject} ${message}`.toLowerCase();
 
-    if (!subject || !message) {
+    if (!subject.trim() || !message.trim()) {
       return res.status(400).json({
-        error: "Subject and message are required",
+        error: "Subject and message are required"
       });
     }
 
-    if (!process.env.OPENROUTER_API_KEY) {
-      return res.status(500).json({
-        error: "OpenRouter API key is missing on server",
-      });
+    const noReplyWords = [
+      "thank you", "thanks", "newsletter",
+      "no reply needed", "successfully delivered"
+    ];
+
+    const clientWords = [
+      "client", "customer", "please confirm",
+      "your approval", "your feedback"
+    ];
+
+    const reviewWords = [
+      "urgent", "legal", "contract", "payment",
+      "invoice", "deadline"
+    ];
+
+    let category = "Assistant to Reply";
+
+    if (noReplyWords.some(word => text.includes(word))) {
+      category = "No Reply Needed";
+    } else if (reviewWords.some(word => text.includes(word))) {
+      category = "Needs Review";
+    } else if (clientWords.some(word => text.includes(word))) {
+      category = "Client to Reply";
     }
 
-    console.log("Sending request to OpenRouter...");
+    const dateMatches = message.match(
+      /\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}\b/gi
+    ) || [];
 
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": "https://mail-mind2.vercel.app",
-          "X-Title": "MailMind",
-        },
-        body: JSON.stringify({
-          model: "meta-llama/llama-3.3-70b-instruct:free",
-          messages: [
-            {
-              role: "system",
-              content: `You are MailMind, an AI email assistant.
-Return ONLY valid JSON:
-{
-  "category": "Assistant to Reply" or "Client to Reply" or "No Reply Needed" or "Needs Review",
-  "summary": "Short email summary",
-  "importantDates": ["Important dates or deadlines"],
-  "suggestedReply": "Professional suggested email reply"
-}
-Choose Needs Review when uncertain. Never invent dates or facts.`,
-            },
-            {
-              role: "user",
-              content: `Subject: ${subject}\n\nEmail: ${message}`,
-            },
-          ],
-          temperature: 0.3,
-        }),
-      }
-    );
+    const summary = `Email regarding ${subject}. Review the message and take the appropriate action.`;
 
-    const data = await response.json();
+    const suggestedReply =
+      category === "No Reply Needed"
+        ? "No reply is required for this email."
+        : "Thank you for your email. I have received your message and will review it. I will get back to you shortly.";
 
-    if (!response.ok) {
-      console.error("OpenRouter error:", data);
-
-      return res.status(502).json({
-        error: data?.error?.message || "OpenRouter request failed",
-      });
-    }
-
-    const aiText = data.choices?.[0]?.message?.content;
-
-    if (!aiText) {
-      throw new Error("AI returned an empty response");
-    }
-
-    const cleanedText = aiText
-      .replace(/```json/gi, "")
-      .replace(/```/g, "")
-      .trim();
-
-    const result = JSON.parse(cleanedText);
-
-    console.log("OpenRouter response received");
-
-    return res.status(200).json(result);
+    return res.json({
+      category,
+      summary,
+      importantDates: dateMatches,
+      suggestedReply
+    });
   } catch (error) {
-    console.error("AI classification error:", error);
-
     return res.status(500).json({
-      error: error.message || "AI classification failed",
+      error: "Email analysis failed"
     });
   }
 });
