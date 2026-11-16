@@ -1,3 +1,4 @@
+
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -7,25 +8,13 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-const allowedOrigins = [
-  "https://mail-mind2.vercel.app",
-  "http://localhost:5173",
-  "http://localhost:3000",
-];
-
+// Allow frontend requests and handle OPTIONS preflight.
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (
-        !origin ||
-        allowedOrigins.includes(origin) ||
-        /^https:\/\/mail-mind2-[a-z0-9-]+-mail-mind1\.vercel\.app$/.test(origin)
-      ) {
-        return callback(null, true);
-      }
-
-      return callback(new Error("Not allowed by CORS"));
-    },
+    origin: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    optionsSuccessStatus: 204,
   })
 );
 
@@ -36,7 +25,10 @@ app.get("/", (req, res) => {
 });
 
 app.get("/api/health", (req, res) => {
-  res.json({ status: "OK", message: "MailMind API is running" });
+  res.json({
+    status: "OK",
+    message: "MailMind API is running",
+  });
 });
 
 app.post("/api/ai/classify", async (req, res) => {
@@ -51,7 +43,7 @@ app.post("/api/ai/classify", async (req, res) => {
 
     if (!process.env.OPENROUTER_API_KEY) {
       return res.status(500).json({
-        error: "OpenRouter API key is missing",
+        error: "OpenRouter API key is missing on server",
       });
     }
 
@@ -73,15 +65,14 @@ app.post("/api/ai/classify", async (req, res) => {
             {
               role: "system",
               content: `You are MailMind, an AI email assistant.
-Analyze the email and return ONLY valid JSON with these fields:
+Return ONLY valid JSON:
 {
   "category": "Assistant to Reply" or "Client to Reply" or "No Reply Needed" or "Needs Review",
   "summary": "Short email summary",
   "importantDates": ["Important dates or deadlines"],
-  "suggestedReply": "A professional suggested email reply"
+  "suggestedReply": "Professional suggested email reply"
 }
-Choose Needs Review if classification is uncertain.
-Do not invent dates or facts.`,
+Choose Needs Review when uncertain. Never invent dates or facts.`,
             },
             {
               role: "user",
@@ -98,10 +89,8 @@ Do not invent dates or facts.`,
     if (!response.ok) {
       console.error("OpenRouter error:", data);
 
-      return res.status(response.status).json({
-        error:
-          data?.error?.message ||
-          "OpenRouter request failed",
+      return res.status(502).json({
+        error: data?.error?.message || "OpenRouter request failed",
       });
     }
 
