@@ -20,6 +20,8 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+
+
 app.use(express.json());
 
 // Automatic retry for temporary API errors
