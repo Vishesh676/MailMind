@@ -216,7 +216,7 @@ function App() {
 
     try {
       const response = await fetch(
-        "https://mailmind-backend-fbpk.onrender.com/api/ai/classify",
+        "https://mailmind-backend-fpbk.onrender.com/api/ai/classify",
         {
           method: "POST",
           headers: {
