@@ -1,86 +1,55 @@
+
 import { useState, useEffect } from "react";
 import {
-  LayoutDashboard,
-  Inbox,
-  Send,
-  UserRound,
-  Archive,
-  Star,
-  CalendarDays,
-  Settings,
-  Bell,
-  Sparkles,
-  ArrowLeft,
-  LoaderCircle,
-  CheckCircle,
-  Search,
+  LayoutDashboard, Inbox, Send, UserRound, Archive, Star,
+  CalendarDays, Settings, Bell, Sparkles, ArrowLeft,
+  LoaderCircle, CheckCircle, Search
 } from "lucide-react";
-
 import "./App.css";
 
 const initialEmails = [
   {
-    id: 1,
-    name: "Rahul Sharma",
-    email: "rahul@techsolutions.com",
+    id: 1, name: "Rahul Sharma", email: "rahul@techsolutions.com",
     subject: "Project proposal for Q4",
     message: "Hi, I have shared the project proposal. Please review it and let me know your thoughts.",
-    time: "10:30 AM",
-    category: "Assistant to Reply",
-    unread: true,
-    important: true,
+    time: "10:30 AM", category: "Assistant to Reply",
+    unread: true, important: true
   },
   {
-    id: 2,
-    name: "Priya Verma",
-    email: "priya@company.com",
+    id: 2, name: "Priya Verma", email: "priya@company.com",
     subject: "Meeting confirmation",
     message: "Could you please confirm your availability for tomorrow's meeting?",
-    time: "09:45 AM",
-    category: "Client to Reply",
-    unread: true,
-    important: false,
+    time: "09:45 AM", category: "Client to Reply",
+    unread: true, important: false
   },
   {
-    id: 3,
-    name: "Amit Kumar",
-    email: "amit@design.com",
+    id: 3, name: "Amit Kumar", email: "amit@design.com",
     subject: "Design files attached",
     message: "Here are the final design files for your review. Thank you!",
-    time: "Yesterday",
-    category: "No Reply Needed",
-    unread: false,
-    important: false,
+    time: "Yesterday", category: "No Reply Needed",
+    unread: false, important: false
   },
   {
-    id: 4,
-    name: "Neha Singh",
-    email: "neha@startup.com",
+    id: 4, name: "Neha Singh", email: "neha@startup.com",
     subject: "Partnership opportunity",
     message: "We would love to discuss a possible partnership with your team.",
-    time: "Yesterday",
-    category: "Needs Review",
-    unread: true,
-    important: true,
+    time: "Yesterday", category: "Needs Review",
+    unread: true, important: true
   },
   {
-    id: 5,
-    name: "Rohan Gupta",
-    email: "rohan@business.com",
+    id: 5, name: "Rohan Gupta", email: "rohan@business.com",
     subject: "Invoice approval required",
     message: "Please review the attached invoice and share your approval.",
-    time: "Monday",
-    category: "Assistant to Reply",
-    unread: false,
-    important: false,
-  },
+    time: "Monday", category: "Assistant to Reply",
+    unread: false, important: false
+  }
 ];
 
 const categories = [
   "Assistant to Reply",
   "Client to Reply",
   "No Reply Needed",
-  "Needs Review",
+  "Needs Review"
 ];
 
 const menuItems = [
@@ -91,15 +60,14 @@ const menuItems = [
   { name: "No Reply Needed", icon: Archive },
   { name: "Important", icon: Star },
   { name: "Meetings", icon: CalendarDays },
-  { name: "Sent", icon: CheckCircle },
+  { name: "Sent", icon: CheckCircle }
 ];
 
 function loadFromStorage(key, fallback) {
   try {
     const saved = localStorage.getItem(key);
     return saved ? JSON.parse(saved) : fallback;
-  } catch (error) {
-    console.error(`Could not load ${key}:`, error);
+  } catch {
     return fallback;
   }
 }
@@ -108,7 +76,6 @@ function App() {
   const [emails, setEmails] = useState(() =>
     loadFromStorage("mailmind_emails", initialEmails)
   );
-
   const [sentEmails, setSentEmails] = useState(() =>
     loadFromStorage("mailmind_sent", [])
   );
@@ -125,64 +92,54 @@ function App() {
   const [draftApproved, setDraftApproved] = useState(false);
   const [sendStatus, setSendStatus] = useState("");
 
-  // Save email data automatically whenever it changes.
   useEffect(() => {
-    try {
-      localStorage.setItem("mailmind_emails", JSON.stringify(emails));
-    } catch (error) {
-      console.error("Could not save emails:", error);
-    }
+    localStorage.setItem("mailmind_emails", JSON.stringify(emails));
   }, [emails]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("mailmind_sent", JSON.stringify(sentEmails));
-    } catch (error) {
-      console.error("Could not save sent emails:", error);
-    }
+    localStorage.setItem("mailmind_sent", JSON.stringify(sentEmails));
   }, [sentEmails]);
 
   const clientEmails = emails.filter(
-    (email) => email.category === "Client to Reply"
+    email => email.category === "Client to Reply"
   );
 
   const updateCategory = (id, category) => {
-    setEmails((previous) =>
-      previous.map((email) =>
+    setEmails(previous =>
+      previous.map(email =>
         email.id === id ? { ...email, category } : email
       )
     );
 
-    setSelectedEmail((previous) =>
+    setSelectedEmail(previous =>
       previous && previous.id === id
         ? { ...previous, category }
         : previous
     );
   };
 
-  const toggleImportant = (id) => {
-    setEmails((previous) =>
-      previous.map((email) =>
+  const toggleImportant = id => {
+    setEmails(previous =>
+      previous.map(email =>
         email.id === id
           ? { ...email, important: !email.important }
           : email
       )
     );
 
-    setSelectedEmail((previous) =>
+    setSelectedEmail(previous =>
       previous && previous.id === id
         ? { ...previous, important: !previous.important }
         : previous
     );
   };
 
-  const openEmail = (email) => {
+  const openEmail = email => {
     const updatedEmail = { ...email, unread: false };
-
     setSelectedEmail(updatedEmail);
 
-    setEmails((previous) =>
-      previous.map((item) =>
+    setEmails(previous =>
+      previous.map(item =>
         item.id === email.id ? updatedEmail : item
       )
     );
@@ -194,7 +151,7 @@ function App() {
     setSendStatus("");
   };
 
-  const changeRole = (role) => {
+  const changeRole = role => {
     setUserRole(role);
     setSelectedEmail(null);
     setAiResult(null);
@@ -219,22 +176,18 @@ function App() {
         "https://mailmind-backend-fpbk.onrender.com/api/ai/classify",
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             subject: selectedEmail.subject,
-            message: selectedEmail.message,
-          }),
+            message: selectedEmail.message
+          })
         }
       );
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error || "AI analysis failed. Please try again."
-        );
+        throw new Error(data.error || "AI analysis failed.");
       }
 
       if (!data.category || !data.summary) {
@@ -249,14 +202,17 @@ function App() {
         importantDates: Array.isArray(data.importantDates)
           ? data.importantDates
           : [],
-        suggestedReply:
-          typeof data.suggestedReply === "string"
-            ? data.suggestedReply
-            : "",
+        suggestedReply: typeof data.suggestedReply === "string"
+          ? data.suggestedReply
+          : ""
       };
 
       setAiResult(result);
       setDraftText(result.suggestedReply);
+
+      // Automatically update the email category using AI result.
+      updateCategory(selectedEmail.id, result.category);
+
     } catch (error) {
       console.error("AI Error:", error);
       setAiError(error.message || "Unable to connect to AI server.");
@@ -266,9 +222,7 @@ function App() {
   };
 
   const sendApprovedDraft = () => {
-    if (!selectedEmail || !draftApproved || !draftText.trim()) {
-      return;
-    }
+    if (!selectedEmail || !draftApproved || !draftText.trim()) return;
 
     const sentRecord = {
       id: Date.now(),
@@ -278,17 +232,15 @@ function App() {
       subject: selectedEmail.subject,
       message: draftText,
       sentAt: new Date().toLocaleString(),
-      status: "Simulated",
+      status: "Simulated"
     };
 
-    setSentEmails((previous) => [sentRecord, ...previous]);
-
+    setSentEmails(previous => [sentRecord, ...previous]);
     updateCategory(selectedEmail.id, "No Reply Needed");
-
     setSendStatus("sent");
   };
 
-  const filteredEmails = emails.filter((email) => {
+  const filteredEmails = emails.filter(email => {
     let matchesCategory = true;
 
     if (activeCategory === "Important") {
@@ -304,7 +256,6 @@ function App() {
     }
 
     const searchText = search.toLowerCase();
-
     const matchesSearch =
       email.name.toLowerCase().includes(searchText) ||
       email.subject.toLowerCase().includes(searchText) ||
@@ -313,9 +264,8 @@ function App() {
     return matchesCategory && matchesSearch;
   });
 
-  const filteredSentEmails = sentEmails.filter((email) => {
+  const filteredSentEmails = sentEmails.filter(email => {
     const searchText = search.toLowerCase();
-
     return (
       email.recipient.toLowerCase().includes(searchText) ||
       email.subject.toLowerCase().includes(searchText) ||
@@ -323,7 +273,7 @@ function App() {
     );
   });
 
-  const selectMenu = (name) => {
+  const selectMenu = name => {
     setActiveCategory(name);
     setSelectedEmail(null);
     setSearch("");
@@ -333,9 +283,8 @@ function App() {
   };
 
   if (userRole === "client") {
-    const visibleClientEmails = clientEmails.filter((email) => {
+    const visibleClientEmails = clientEmails.filter(email => {
       const searchText = search.toLowerCase();
-
       return (
         email.name.toLowerCase().includes(searchText) ||
         email.subject.toLowerCase().includes(searchText) ||
@@ -352,10 +301,7 @@ function App() {
           </div>
 
           <div className="role-switch">
-            <button
-              className="role-button"
-              onClick={() => changeRole("assistant")}
-            >
+            <button className="role-button" onClick={() => changeRole("assistant")}>
               Assistant
             </button>
             <button className="role-button active">Client</button>
@@ -363,10 +309,7 @@ function App() {
 
           <div className="sidebar-label">WORKSPACE</div>
 
-          <button
-            className="menu-item active"
-            onClick={() => setSelectedEmail(null)}
-          >
+          <button className="menu-item active" onClick={() => setSelectedEmail(null)}>
             <Inbox size={18} />
             <span>Emails to Reply</span>
           </button>
@@ -385,7 +328,6 @@ function App() {
               <h2>Client Workspace</h2>
               <p>Manage emails that need your response.</p>
             </div>
-
             <div className="topbar-actions">
               <span className="role-label">Client</span>
               <Bell size={20} />
@@ -396,12 +338,8 @@ function App() {
           <section className="dashboard-content">
             {selectedEmail ? (
               <div className="email-detail">
-                <button
-                  className="back-button"
-                  onClick={() => setSelectedEmail(null)}
-                >
-                  <ArrowLeft size={18} />
-                  Back to emails
+                <button className="back-button" onClick={() => setSelectedEmail(null)}>
+                  <ArrowLeft size={18} /> Back to emails
                 </button>
 
                 <div className="detail-card">
@@ -411,25 +349,14 @@ function App() {
                         Client to Reply
                       </span>
                       <h2>{selectedEmail.subject}</h2>
-                      <p>
-                        From {selectedEmail.name} · {selectedEmail.email}
-                      </p>
+                      <p>From {selectedEmail.name} · {selectedEmail.email}</p>
                     </div>
-
-                    <button
-                      className="star-button"
-                      onClick={() => toggleImportant(selectedEmail.id)}
-                    >
-                      <Star
-                        size={20}
-                        fill={selectedEmail.important ? "currentColor" : "none"}
-                      />
+                    <button className="star-button" onClick={() => toggleImportant(selectedEmail.id)}>
+                      <Star size={20} fill={selectedEmail.important ? "currentColor" : "none"} />
                     </button>
                   </div>
 
-                  <div className="email-message">
-                    {selectedEmail.message}
-                  </div>
+                  <div className="email-message">{selectedEmail.message}</div>
 
                   <div className="client-actions">
                     <button
@@ -439,8 +366,7 @@ function App() {
                         setSelectedEmail(null);
                       }}
                     >
-                      <CheckCircle size={17} />
-                      Mark Handled
+                      <CheckCircle size={17} /> Mark Handled
                     </button>
 
                     <button
@@ -465,10 +391,9 @@ function App() {
                 <div className="search-box">
                   <Search size={18} />
                   <input
-                    type="text"
                     placeholder="Search emails..."
                     value={search}
-                    onChange={(event) => setSearch(event.target.value)}
+                    onChange={event => setSearch(event.target.value)}
                   />
                 </div>
 
@@ -479,30 +404,20 @@ function App() {
                       <h3>No emails to reply</h3>
                       <p>You're all caught up!</p>
                     </div>
-                  ) : (
-                    visibleClientEmails.map((email) => (
-                      <button
-                        className="email-row"
-                        key={email.id}
-                        onClick={() => openEmail(email)}
-                      >
-                        <div className="email-avatar">
-                          {email.name.charAt(0)}
+                  ) : visibleClientEmails.map(email => (
+                    <button className="email-row" key={email.id} onClick={() => openEmail(email)}>
+                      <div className="email-avatar">{email.name.charAt(0)}</div>
+                      <div className="email-row-content">
+                        <div className="email-row-top">
+                          <strong>{email.name}</strong>
+                          <span>{email.time}</span>
                         </div>
-
-                        <div className="email-row-content">
-                          <div className="email-row-top">
-                            <strong>{email.name}</strong>
-                            <span>{email.time}</span>
-                          </div>
-                          <h3>{email.subject}</h3>
-                          <p>{email.message}</p>
-                        </div>
-
-                        {email.unread && <span className="unread-dot" />}
-                      </button>
-                    ))
-                  )}
+                        <h3>{email.subject}</h3>
+                        <p>{email.message}</p>
+                      </div>
+                      {email.unread && <span className="unread-dot" />}
+                    </button>
+                  ))}
                 </div>
               </>
             )}
@@ -522,10 +437,7 @@ function App() {
 
         <div className="role-switch">
           <button className="role-button active">Assistant</button>
-          <button
-            className="role-button"
-            onClick={() => changeRole("client")}
-          >
+          <button className="role-button" onClick={() => changeRole("client")}>
             Client
           </button>
         </div>
@@ -533,15 +445,12 @@ function App() {
         <div className="sidebar-label">WORKSPACE</div>
 
         <nav className="sidebar-menu">
-          {menuItems.map((item) => {
+          {menuItems.map(item => {
             const Icon = item.icon;
-
             return (
               <button
                 key={item.name}
-                className={
-                  activeCategory === item.name ? "menu-item active" : "menu-item"
-                }
+                className={activeCategory === item.name ? "menu-item active" : "menu-item"}
                 onClick={() => selectMenu(item.name)}
               >
                 <Icon size={18} />
@@ -565,7 +474,6 @@ function App() {
             <h2>Assistant Dashboard</h2>
             <p>Manage your inbox with AI assistance.</p>
           </div>
-
           <div className="topbar-actions">
             <span className="role-label">Assistant</span>
             <Bell size={20} />
@@ -576,52 +484,30 @@ function App() {
         <section className="dashboard-content">
           {selectedEmail ? (
             <div className="email-detail">
-              <button
-                className="back-button"
-                onClick={() => setSelectedEmail(null)}
-              >
-                <ArrowLeft size={18} />
-                Back to emails
+              <button className="back-button" onClick={() => setSelectedEmail(null)}>
+                <ArrowLeft size={18} /> Back to emails
               </button>
 
               <div className="detail-card">
                 <div className="detail-header">
                   <div>
-                    <span className="category-badge">
-                      {selectedEmail.category}
-                    </span>
+                    <span className="category-badge">{selectedEmail.category}</span>
                     <h2>{selectedEmail.subject}</h2>
-                    <p>
-                      From {selectedEmail.name} · {selectedEmail.email}
-                    </p>
+                    <p>From {selectedEmail.name} · {selectedEmail.email}</p>
                   </div>
-
-                  <button
-                    className="star-button"
-                    onClick={() => toggleImportant(selectedEmail.id)}
-                  >
-                    <Star
-                      size={20}
-                      fill={selectedEmail.important ? "currentColor" : "none"}
-                    />
+                  <button className="star-button" onClick={() => toggleImportant(selectedEmail.id)}>
+                    <Star size={20} fill={selectedEmail.important ? "currentColor" : "none"} />
                   </button>
                 </div>
 
-                <div className="email-message">
-                  {selectedEmail.message}
-                </div>
+                <div className="email-message">{selectedEmail.message}</div>
 
                 <div className="classification-actions">
                   <p>Manually classify this email:</p>
-
-                  {categories.map((category) => (
+                  {categories.map(category => (
                     <button
                       key={category}
-                      className={
-                        selectedEmail.category === category
-                          ? "primary-button"
-                          : "secondary-button"
-                      }
+                      className={selectedEmail.category === category ? "primary-button" : "secondary-button"}
                       onClick={() => updateCategory(selectedEmail.id, category)}
                     >
                       {category}
@@ -636,20 +522,14 @@ function App() {
                       <h3>AI Email Assistant</h3>
                     </div>
 
-                    <button
-                      className="primary-button"
-                      onClick={analyzeEmail}
-                      disabled={aiLoading}
-                    >
+                    <button className="primary-button" onClick={analyzeEmail} disabled={aiLoading}>
                       {aiLoading ? (
                         <>
-                          <LoaderCircle size={17} />
-                          Analyzing...
+                          <LoaderCircle size={17} /> Analyzing...
                         </>
                       ) : (
                         <>
-                          <Sparkles size={17} />
-                          Analyze Email
+                          <Sparkles size={17} /> Analyze Email
                         </>
                       )}
                     </button>
@@ -662,15 +542,7 @@ function App() {
                       <div className="ai-result-item">
                         <strong>AI Classification</strong>
                         <p>{aiResult.category}</p>
-
-                        <button
-                          className="secondary-button"
-                          onClick={() =>
-                            updateCategory(selectedEmail.id, aiResult.category)
-                          }
-                        >
-                          Apply AI Category
-                        </button>
+                        <p className="success-message">Category automatically updated.</p>
                       </div>
 
                       <div className="ai-result-item">
@@ -680,7 +552,6 @@ function App() {
 
                       <div className="ai-result-item">
                         <strong>Important Dates & Actions</strong>
-
                         {aiResult.importantDates.length > 0 ? (
                           <ul>
                             {aiResult.importantDates.map((date, index) => (
@@ -694,10 +565,9 @@ function App() {
 
                       <div className="ai-result-item">
                         <strong>Suggested Reply</strong>
-
                         <textarea
                           value={draftText}
-                          onChange={(event) => {
+                          onChange={event => {
                             setDraftText(event.target.value);
                             setDraftApproved(false);
                             setSendStatus("");
@@ -714,22 +584,14 @@ function App() {
                             setSendStatus("");
                           }}
                         >
-                          <CheckCircle size={17} />
-                          Approve Draft
+                          <CheckCircle size={17} /> Approve Draft
                         </button>
 
                         {draftApproved && sendStatus !== "sent" && (
                           <div className="send-confirmation">
-                            <p className="success-message">
-                              Draft approved. Review it before sending.
-                            </p>
-
-                            <button
-                              className="primary-button"
-                              onClick={sendApprovedDraft}
-                            >
-                              <Send size={17} />
-                              Send Email
+                            <p className="success-message">Draft approved. Review it before sending.</p>
+                            <button className="primary-button" onClick={sendApprovedDraft}>
+                              <Send size={17} /> Send Email
                             </button>
                           </div>
                         )}
@@ -739,9 +601,7 @@ function App() {
                             <CheckCircle size={20} />
                             <div>
                               <strong>Email sent successfully!</strong>
-                              <p>
-                                Simulated sending completed. No real email was sent.
-                              </p>
+                              <p>Simulated sending completed. No real email was sent.</p>
                             </div>
                           </div>
                         )}
@@ -750,10 +610,7 @@ function App() {
                   )}
 
                   {!aiResult && !aiLoading && !aiError && (
-                    <p>
-                      Click Analyze Email to get an AI summary, classification
-                      and suggested reply.
-                    </p>
+                    <p>Click Analyze Email to get an AI summary, classification and suggested reply.</p>
                   )}
                 </div>
               </div>
@@ -768,10 +625,9 @@ function App() {
               <div className="search-box">
                 <Search size={18} />
                 <input
-                  type="text"
                   placeholder="Search sent emails..."
                   value={search}
-                  onChange={(event) => setSearch(event.target.value)}
+                  onChange={event => setSearch(event.target.value)}
                 />
               </div>
 
@@ -782,25 +638,20 @@ function App() {
                     <h3>No sent emails yet</h3>
                     <p>Approved and sent replies will appear here.</p>
                   </div>
-                ) : (
-                  filteredSentEmails.map((email) => (
-                    <div className="email-row" key={email.id}>
-                      <div className="email-avatar">
-                        {email.recipient.charAt(0).toUpperCase()}
+                ) : filteredSentEmails.map(email => (
+                  <div className="email-row" key={email.id}>
+                    <div className="email-avatar">{email.recipient.charAt(0).toUpperCase()}</div>
+                    <div className="email-row-content">
+                      <div className="email-row-top">
+                        <strong>To: {email.recipient}</strong>
+                        <span>{email.sentAt}</span>
                       </div>
-
-                      <div className="email-row-content">
-                        <div className="email-row-top">
-                          <strong>To: {email.recipient}</strong>
-                          <span>{email.sentAt}</span>
-                        </div>
-                        <h3>{email.subject}</h3>
-                        <p>{email.message}</p>
-                        <span className="category-badge">Simulated Send</span>
-                      </div>
+                      <h3>{email.subject}</h3>
+                      <p>{email.message}</p>
+                      <span className="category-badge">Simulated Send</span>
                     </div>
-                  ))
-                )}
+                  </div>
+                ))}
               </div>
             </>
           ) : (
@@ -816,35 +667,26 @@ function App() {
                   <h2>{emails.length}</h2>
                   <Inbox size={22} />
                 </div>
-
                 <div className="stat-card">
                   <span>Assistant to Reply</span>
-                  <h2>
-                    {emails.filter((email) => email.category === "Assistant to Reply").length}
-                  </h2>
+                  <h2>{emails.filter(email => email.category === "Assistant to Reply").length}</h2>
                   <Send size={22} />
                 </div>
-
                 <div className="stat-card">
                   <span>Client to Reply</span>
                   <h2>{clientEmails.length}</h2>
                   <UserRound size={22} />
                 </div>
-
                 <div className="stat-card">
                   <span>Needs Review</span>
-                  <h2>
-                    {emails.filter((email) => email.category === "Needs Review").length}
-                  </h2>
+                  <h2>{emails.filter(email => email.category === "Needs Review").length}</h2>
                   <Sparkles size={22} />
                 </div>
               </div>
 
               <div className="inbox-heading">
                 <div>
-                  <h2>
-                    {activeCategory === "Overview" ? "Recent Emails" : activeCategory}
-                  </h2>
+                  <h2>{activeCategory === "Overview" ? "Recent Emails" : activeCategory}</h2>
                   <p>Review and manage your emails.</p>
                 </div>
               </div>
@@ -852,10 +694,9 @@ function App() {
               <div className="search-box">
                 <Search size={18} />
                 <input
-                  type="text"
                   placeholder="Search by sender, subject or message..."
                   value={search}
-                  onChange={(event) => setSearch(event.target.value)}
+                  onChange={event => setSearch(event.target.value)}
                 />
               </div>
 
@@ -866,41 +707,26 @@ function App() {
                     <h3>No emails found</h3>
                     <p>Try changing your search or filter.</p>
                   </div>
-                ) : (
-                  filteredEmails.map((email) => (
-                    <div className="email-row" key={email.id}>
-                      <button
-                        className="email-row-main"
-                        onClick={() => openEmail(email)}
-                      >
-                        <div className="email-avatar">
-                          {email.name.charAt(0)}
+                ) : filteredEmails.map(email => (
+                  <div className="email-row" key={email.id}>
+                    <button className="email-row-main" onClick={() => openEmail(email)}>
+                      <div className="email-avatar">{email.name.charAt(0)}</div>
+                      <div className="email-row-content">
+                        <div className="email-row-top">
+                          <strong>{email.name}</strong>
+                          <span>{email.time}</span>
                         </div>
+                        <h3>{email.subject}</h3>
+                        <p>{email.message}</p>
+                        <span className="category-badge">{email.category}</span>
+                      </div>
+                    </button>
 
-                        <div className="email-row-content">
-                          <div className="email-row-top">
-                            <strong>{email.name}</strong>
-                            <span>{email.time}</span>
-                          </div>
-                          <h3>{email.subject}</h3>
-                          <p>{email.message}</p>
-                          <span className="category-badge">{email.category}</span>
-                        </div>
-                      </button>
-
-                      <button
-                        className="star-button"
-                        onClick={() => toggleImportant(email.id)}
-                        aria-label="Toggle important"
-                      >
-                        <Star
-                          size={18}
-                          fill={email.important ? "currentColor" : "none"}
-                        />
-                      </button>
-                    </div>
-                  ))
-                )}
+                    <button className="star-button" onClick={() => toggleImportant(email.id)} aria-label="Toggle important">
+                      <Star size={18} fill={email.important ? "currentColor" : "none"} />
+                    </button>
+                  </div>
+                ))}
               </div>
             </>
           )}

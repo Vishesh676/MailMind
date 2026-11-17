@@ -1,4 +1,3 @@
-
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -6,79 +5,85 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("MailMind Backend is running!");
-});
-
 app.get("/api/health", (req, res) => {
-  res.json({ status: "OK", message: "MailMind API is running" });
+  res.json({
+    status: "Backend is running",
+    provider: "Groq",
+    aiConfigured: Boolean(process.env.GROQ_API_KEY),
+  });
 });
 
-app.post("/api/ai/classify", (req, res) => {
+app.post("/api/ai/classify", async (req, res) => {
   try {
-    const { subject = "", message = "" } = req.body || {};
-    const text = `${subject} ${message}`.toLowerCase();
+    const { subject, message } = req.body;
 
-    if (!subject.trim() || !message.trim()) {
+    if (!subject || !message) {
       return res.status(400).json({
-        error: "Subject and message are required"
+        error: "Subject and message are required",
       });
     }
 
-    const noReplyWords = [
-      "thank you", "thanks", "newsletter",
-      "no reply needed", "successfully delivered"
-    ];
+    const response = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+         model: "openai/gpt-oss-20b",
+          messages: [
+            {
+              role: "system",
+              content: `You are an intelligent email assistant.
+Analyze the email and return ONLY valid JSON with these fields:
+category: one of "Assistant to Reply", "Client to Reply", "No Reply Needed", "Needs Review".
+summary: short email summary.
+importantDates: array of important dates or deadlines.
+suggestedReply: a professional suggested reply.
 
-    const clientWords = [
-      "client", "customer", "please confirm",
-      "your approval", "your feedback"
-    ];
+If the email is uncertain, use "Needs Review".`,
+            },
+            {
+              role: "user",
+              content: `Subject: ${subject}\n\nMessage: ${message}`,
+            },
+          ],
+          temperature: 0.2,
+          response_format: { type: "json_object" },
+        }),
+      }
+    );
 
-    const reviewWords = [
-      "urgent", "legal", "contract", "payment",
-      "invoice", "deadline"
-    ];
+    const data = await response.json();
 
-    let category = "Assistant to Reply";
-
-    if (noReplyWords.some(word => text.includes(word))) {
-      category = "No Reply Needed";
-    } else if (reviewWords.some(word => text.includes(word))) {
-      category = "Needs Review";
-    } else if (clientWords.some(word => text.includes(word))) {
-      category = "Client to Reply";
+    if (!response.ok) {
+      return res.status(response.status).json({
+        error: "Groq AI request failed",
+        details: data,
+      });
     }
 
-    const dateMatches = message.match(
-      /\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}\b/gi
-    ) || [];
+    const result = JSON.parse(data.choices[0].message.content);
 
-    const summary = `Email regarding ${subject}. Review the message and take the appropriate action.`;
-
-    const suggestedReply =
-      category === "No Reply Needed"
-        ? "No reply is required for this email."
-        : "Thank you for your email. I have received your message and will review it. I will get back to you shortly.";
-
-    return res.json({
-      category,
-      summary,
-      importantDates: dateMatches,
-      suggestedReply
-    });
+    res.json(result);
   } catch (error) {
-    return res.status(500).json({
-      error: "Email analysis failed"
+    console.error("AI Error:", error);
+
+    res.status(500).json({
+      error: "AI analysis failed",
+      details: error.message,
     });
   }
 });
 
+const PORT = process.env.PORT || 5000;
+
 app.listen(PORT, () => {
-  console.log(`MailMind server running on port ${PORT}`);
+  console.log(`Groq backend running on port ${PORT}`);
 });
